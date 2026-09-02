@@ -4,6 +4,7 @@ import type {
   ListingSort,
   ListingStatus,
   Source,
+  WorkMode,
 } from "./types";
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -24,18 +25,26 @@ export async function getSources(): Promise<Source[]> {
   return result.sources;
 }
 
-export async function getListings(
-  search = "",
-  sort: ListingSort = "recent",
-  status?: ListingStatus,
-): Promise<Listing[]> {
+export interface ListingQuery {
+  search?: string;
+  sort?: ListingSort;
+  status?: ListingStatus;
+  company?: string;
+  location?: string;
+  workMode?: WorkMode;
+}
+
+export async function getListings(query: ListingQuery = {}): Promise<Listing[]> {
   const params = new URLSearchParams();
-  if (search) params.set("search", search);
-  if (sort !== "recent") params.set("sort", sort);
-  if (status) params.set("status", status);
-  const query = params.toString() ? `?${params.toString()}` : "";
+  if (query.search) params.set("search", query.search);
+  if (query.sort && query.sort !== "recent") params.set("sort", query.sort);
+  if (query.status) params.set("status", query.status);
+  if (query.company) params.set("company", query.company);
+  if (query.location) params.set("location", query.location);
+  if (query.workMode) params.set("workMode", query.workMode);
+  const searchParams = params.toString() ? `?${params.toString()}` : "";
   const result = await requestJson<{ listings: Listing[] }>(
-    `/api/listings${query}`,
+    `/api/listings${searchParams}`,
   );
   return result.listings;
 }

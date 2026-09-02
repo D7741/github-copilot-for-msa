@@ -90,12 +90,12 @@ export class JobFinderRepository {
       parameters.search = `%${filters.search}%`;
     }
     if (filters.company) {
-      clauses.push("company_name = @company");
-      parameters.company = filters.company;
+      clauses.push("company_name LIKE @company");
+      parameters.company = `%${filters.company}%`;
     }
     if (filters.location) {
-      clauses.push("location = @location");
-      parameters.location = filters.location;
+      clauses.push("location LIKE @location");
+      parameters.location = `%${filters.location}%`;
     }
     if (filters.sourceId) {
       clauses.push("source_id = @sourceId");
@@ -104,6 +104,17 @@ export class JobFinderRepository {
     if (filters.status) {
       clauses.push("status = @status");
       parameters.status = filters.status;
+    }
+    if (filters.workMode === "remote") {
+      clauses.push("LOWER(location) LIKE '%remote%'");
+    }
+    if (filters.workMode === "hybrid") {
+      clauses.push("LOWER(location) LIKE '%hybrid%'");
+    }
+    if (filters.workMode === "onsite") {
+      clauses.push(
+        "location IS NOT NULL AND LOWER(location) NOT LIKE '%remote%' AND LOWER(location) NOT LIKE '%hybrid%'",
+      );
     }
 
     const where = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "";

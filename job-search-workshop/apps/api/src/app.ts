@@ -5,7 +5,7 @@ import {
   CollectionService,
 } from "./collection-service.js";
 import { JobFinderRepository } from "./database.js";
-import type { Listing, ListingSort } from "./models.js";
+import type { Listing, ListingSort, WorkMode } from "./models.js";
 
 function optionalQuery(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
@@ -28,6 +28,14 @@ const LISTING_STATUS_VALUES: Listing["status"][] = [
 function optionalStatus(value: unknown): Listing["status"] | undefined {
   return LISTING_STATUS_VALUES.includes(value as Listing["status"])
     ? (value as Listing["status"])
+    : undefined;
+}
+
+const WORK_MODE_VALUES: WorkMode[] = ["remote", "hybrid", "onsite"];
+
+function optionalWorkMode(value: unknown): WorkMode | undefined {
+  return WORK_MODE_VALUES.includes(value as WorkMode)
+    ? (value as WorkMode)
     : undefined;
 }
 
@@ -54,6 +62,7 @@ export function createApp(repository: JobFinderRepository) {
       sourceId: optionalQuery(request.query.source),
       sort: optionalSort(request.query.sort),
       status: optionalStatus(request.query.status),
+      workMode: optionalWorkMode(request.query.workMode),
     });
     response.json({ listings });
   });

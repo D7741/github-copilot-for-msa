@@ -35,6 +35,7 @@ export interface Listing {
 }
 
 export type ListingSort = "recent" | "title" | "company" | "location";
+export type WorkMode = "remote" | "hybrid" | "onsite";
 
 export interface ListingFilters {
   search?: string;
@@ -43,6 +44,7 @@ export interface ListingFilters {
   sourceId?: string;
   sort?: ListingSort;
   status?: Listing["status"];
+  workMode?: WorkMode;
 }
 
 export interface CollectionRun {
