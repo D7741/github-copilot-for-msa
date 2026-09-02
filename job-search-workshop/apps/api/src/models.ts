@@ -1,5 +1,14 @@
 export type SourceStatus = "approved" | "pending" | "rejected";
 
+export interface PolicyReview {
+  reviewer: string | null;
+  reviewedAt: string | null;
+  termsUrl: string | null;
+  robotsUrl: string | null;
+  evidenceUrl: string | null;
+  notes: string;
+}
+
 export interface Source {
   id: string;
   name: string;
@@ -8,6 +17,7 @@ export interface Source {
   sourceType: string;
   enabled: boolean;
   policyStatus: SourceStatus;
+  policyReview: PolicyReview;
 }
 
 export interface Listing {

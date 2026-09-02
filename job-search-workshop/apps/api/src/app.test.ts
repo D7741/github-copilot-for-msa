@@ -1,5 +1,5 @@
 import request from "supertest";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createApp } from "./app.js";
 import { JobFinderRepository } from "./database.js";
@@ -15,36 +15,34 @@ describe("job finder API", () => {
     repository.close();
   });
 
-  it("reports health and exposes enabled candidate sources", async () => {
+  it("reports health and exposes pending structured-source evidence", async () => {
     const app = createApp(repository);
 
     await request(app).get("/api/health").expect(200, { status: "ok" });
     const response = await request(app).get("/api/sources").expect(200);
 
     expect(response.body.sources).toHaveLength(6);
+    expect(response.body.sources).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: "pushpay",
+        endpointUrl: "https://boards-api.greenhouse.io/v1/boards/pushpay/jobs?content=true",
+        sourceType: "greenhouse",
+        enabled: false,
+        policyStatus: "pending",
+        policyReview: expect.objectContaining({
+          robotsUrl: "https://pushpay.com/robots.txt",
+          reviewer: null,
+        }),
+      }),
+    ]));
     expect(
       response.body.sources.every(
         (source: { enabled: boolean }) => source.enabled,
       ),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("starts a background collection run", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(
-          [
-            '<a href="https://careers.xero.com/jobs/f864bae7-8238-4123-9251-24d2e7fd63da/software-engineer/">Software Engineer</a>',
-            '<span>US: Remote, Washington, United States</span>',
-            '<a href="https://careers.xero.com/jobs/40a09a30-ab3b-4d65-af9b-728b8da13907/customer-incident-manager/">Customer Incident Manager</a>',
-            '<span>Parnell, Auckland, New Zealand</span>',
-            '<a href="https://www.serko.com/job-listing/principal-engineer-serkoai-auckland-new-zealand"><span>Principal Engineer - Serko.ai</span><span>Auckland, New Zealand</span></a>',
-            '<a href="https://www.serko.com/job-listing/principal-engineer-ai-platform-operations-seattle-united-states">Principal Engineer - AI Platform &amp; Operations Seattle, Washington, United States Full-time</a>',
-          ].join(""),
-        ),
-      ),
-    );
     const app = createApp(repository);
 
     const startResponse = await request(app)
@@ -60,25 +58,13 @@ describe("job finder API", () => {
 
     expect(latestResponse.body.run).toMatchObject({
       status: "completed",
-      sourceCount: 6,
-      successCount: 6,
+      sourceCount: 0,
+      successCount: 0,
       skippedCount: 0,
     });
 
     const listingsResponse = await request(app).get("/api/listings").expect(200);
-    expect(listingsResponse.body.listings).toHaveLength(2);
-    expect(listingsResponse.body.listings).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        title: "Customer Incident Manager",
-        location: "Parnell, Auckland, New Zealand",
-        sourceId: "xero",
-      }),
-      expect.objectContaining({
-        title: "Principal Engineer - Serko.ai",
-        location: "Auckland, New Zealand",
-        sourceId: "serko",
-      }),
-    ]));
+    expect(listingsResponse.body.listings).toEqual([]);
   });
 
   it("returns an empty listing collection before a source is enabled", async () => {

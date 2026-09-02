@@ -35,7 +35,8 @@ export class JobFinderRepository {
   public listSources(): Source[] {
     const rows = this.database
       .prepare(
-        `SELECT id, name, careers_url, endpoint_url, source_type, enabled, policy_status
+        `SELECT id, name, careers_url, endpoint_url, source_type, enabled, policy_status,
+                reviewer, reviewed_at, terms_url, robots_url, evidence_url, policy_notes
          FROM sources
          ORDER BY name`,
       )
@@ -49,6 +50,14 @@ export class JobFinderRepository {
       sourceType: String(row.source_type),
       enabled: Boolean(row.enabled),
       policyStatus: String(row.policy_status) as Source["policyStatus"],
+      policyReview: {
+        reviewer: row.reviewer === null ? null : String(row.reviewer),
+        reviewedAt: row.reviewed_at === null ? null : String(row.reviewed_at),
+        termsUrl: row.terms_url === null ? null : String(row.terms_url),
+        robotsUrl: row.robots_url === null ? null : String(row.robots_url),
+        evidenceUrl: row.evidence_url === null ? null : String(row.evidence_url),
+        notes: String(row.policy_notes),
+      },
     }));
   }
 
@@ -225,7 +234,13 @@ export class JobFinderRepository {
         source_type TEXT NOT NULL,
         enabled INTEGER NOT NULL DEFAULT 0,
         policy_status TEXT NOT NULL DEFAULT 'pending'
-          CHECK (policy_status IN ('approved', 'pending', 'rejected'))
+          CHECK (policy_status IN ('approved', 'pending', 'rejected')),
+        reviewer TEXT,
+        reviewed_at TEXT,
+        terms_url TEXT,
+        robots_url TEXT,
+        evidence_url TEXT,
+        policy_notes TEXT NOT NULL DEFAULT ''
       );
 
       CREATE TABLE IF NOT EXISTS listings (
@@ -262,19 +277,44 @@ export class JobFinderRepository {
         PRIMARY KEY (run_id, source_id)
       );
     `);
+
+    const columns = this.database
+      .prepare("PRAGMA table_info(sources)")
+      .all() as Array<{ name: string }>;
+    const existingColumns = new Set(columns.map((column) => column.name));
+    const policyColumns = [
+      ["reviewer", "TEXT"],
+      ["reviewed_at", "TEXT"],
+      ["terms_url", "TEXT"],
+      ["robots_url", "TEXT"],
+      ["evidence_url", "TEXT"],
+      ["policy_notes", "TEXT NOT NULL DEFAULT ''"],
+    ] as const;
+
+    for (const [name, definition] of policyColumns) {
+      if (!existingColumns.has(name)) {
+        this.database.exec(`ALTER TABLE sources ADD COLUMN ${name} ${definition}`);
+      }
+    }
   }
 
   private seedSources(): void {
     const insert = this.database.prepare(
       `INSERT OR IGNORE INTO sources
-         (id, name, careers_url, endpoint_url, source_type, enabled, policy_status)
+         (id, name, careers_url, endpoint_url, source_type, enabled, policy_status,
+          reviewer, reviewed_at, terms_url, robots_url, evidence_url, policy_notes)
        VALUES
-         (@id, @name, @careersUrl, @endpointUrl, @sourceType, @enabled, @policyStatus)`,
+         (@id, @name, @careersUrl, @endpointUrl, @sourceType, @enabled, @policyStatus,
+          @reviewer, @reviewedAt, @termsUrl, @robotsUrl, @evidenceUrl, @notes)`,
     );
 
     const seed = this.database.transaction((sources: Source[]) => {
       for (const source of sources) {
-        insert.run({ ...source, enabled: source.enabled ? 1 : 0 });
+        insert.run({
+          ...source,
+          ...source.policyReview,
+          enabled: source.enabled ? 1 : 0,
+        });
       }
     });
 
@@ -282,10 +322,16 @@ export class JobFinderRepository {
 
     const update = this.database.prepare(
       `UPDATE sources SET name = @name, careers_url = @careersUrl, endpoint_url = @endpointUrl,
-       source_type = @sourceType, enabled = @enabled, policy_status = @policyStatus WHERE id = @id`,
+       source_type = @sourceType, enabled = @enabled, policy_status = @policyStatus,
+       reviewer = @reviewer, reviewed_at = @reviewedAt, terms_url = @termsUrl,
+       robots_url = @robotsUrl, evidence_url = @evidenceUrl, policy_notes = @notes WHERE id = @id`,
     );
     for (const source of candidateSources) {
-      update.run({ ...source, enabled: source.enabled ? 1 : 0 });
+      update.run({
+        ...source,
+        ...source.policyReview,
+        enabled: source.enabled ? 1 : 0,
+      });
     }
   }
 }

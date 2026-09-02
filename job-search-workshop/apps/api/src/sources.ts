@@ -1,14 +1,24 @@
 import type { Source } from "./models.js";
 
+const pendingPolicyReview: Source["policyReview"] = {
+  reviewer: null,
+  reviewedAt: null,
+  termsUrl: null,
+  robotsUrl: null,
+  evidenceUrl: null,
+  notes: "Awaiting facilitator review of a permitted structured endpoint and collection policy.",
+};
+
 export const candidateSources: Source[] = [
   {
     id: "seek",
     name: "SEEK",
     careersUrl: "https://www.seek.co.nz/",
     endpointUrl: null,
-    sourceType: "html",
-    enabled: true,
-    policyStatus: "approved",
+    sourceType: "unverified",
+    enabled: false,
+    policyStatus: "pending",
+    policyReview: pendingPolicyReview,
   },
   {
     id: "microsoft-careers",
@@ -16,54 +26,56 @@ export const candidateSources: Source[] = [
     careersUrl:
       "https://jobs.careers.microsoft.com/global/en/search?lc=New%20Zealand",
     endpointUrl: null,
-    sourceType: "html",
-    enabled: true,
-    policyStatus: "approved",
+    sourceType: "unverified",
+    enabled: false,
+    policyStatus: "pending",
+    policyReview: pendingPolicyReview,
   },
-  /* Vista is temporarily excluded from collection.
-  {
-    id: "vista", name: "Vista", careersUrl: "https://careers.vista.co/",
-    endpointUrl: null, sourceType: "html", enabled: false, policyStatus: "pending",
-  }, */
   {
     id: "xero",
     name: "Xero",
     careersUrl: "https://careers.xero.com/jobs/",
     endpointUrl: null,
-    sourceType: "html",
-    enabled: true,
-    policyStatus: "approved",
+    sourceType: "unverified",
+    enabled: false,
+    policyStatus: "pending",
+    policyReview: pendingPolicyReview,
   },
   {
     id: "serko",
     name: "Serko",
     careersUrl: "https://www.serko.com/careers",
     endpointUrl: null,
-    sourceType: "html",
-    enabled: true,
-    policyStatus: "approved",
+    sourceType: "unverified",
+    enabled: false,
+    policyStatus: "pending",
+    policyReview: pendingPolicyReview,
   },
   {
     id: "pushpay",
     name: "Pushpay",
-    careersUrl: "https://pushpay.com/about-us/careers/new-zealand/",
-    endpointUrl: null,
-    sourceType: "html",
-    enabled: true,
-    policyStatus: "approved",
+    careersUrl: "https://job-boards.greenhouse.io/pushpay",
+    endpointUrl: "https://boards-api.greenhouse.io/v1/boards/pushpay/jobs?content=true",
+    sourceType: "greenhouse",
+    enabled: false,
+    policyStatus: "pending",
+    policyReview: {
+      reviewer: null,
+      reviewedAt: null,
+      termsUrl: null,
+      robotsUrl: "https://pushpay.com/robots.txt",
+      evidenceUrl: "https://job-boards.greenhouse.io/pushpay",
+      notes: "Public unauthenticated Greenhouse JSON endpoint found. It exposes job IDs, locations, departments, and listing URLs. Awaiting facilitator Terms review before enablement.",
+    },
   },
-  /* Datacom is temporarily excluded from collection.
-  {
-    id: "datacom", name: "Datacom", careersUrl: "https://careers.datacom.com/",
-    endpointUrl: null, sourceType: "html", enabled: false, policyStatus: "pending",
-  }, */
   {
     id: "trade-me-jobs",
     name: "Trade Me Jobs",
     careersUrl: "https://www.trademe.co.nz/a/jobs/it/programming-development",
     endpointUrl: null,
-    sourceType: "html",
-    enabled: true,
-    policyStatus: "approved",
+    sourceType: "unverified",
+    enabled: false,
+    policyStatus: "pending",
+    policyReview: pendingPolicyReview,
   },
 ];
