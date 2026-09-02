@@ -10,6 +10,7 @@ export interface Source {
 
 export type ListingSort = "recent" | "title" | "company" | "location";
 export type ListingStatus = "active" | "stale" | "unavailable";
+export type WorkMode = "remote" | "hybrid" | "onsite";
 
 export interface Listing {
   id: string;

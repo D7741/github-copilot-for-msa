@@ -18,9 +18,11 @@ import type {
   Listing,
   ListingSort,
   ListingStatus,
+  WorkMode,
 } from "./types";
 
 type StatusFilter = ListingStatus | "all";
+type WorkModeFilter = WorkMode | "all";
 
 function formatTimestamp(value: string | null): string {
   if (!value) {
@@ -49,6 +51,9 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<ListingSort>("recent");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
+  const [company, setCompany] = useState("");
+  const [location, setLocation] = useState("");
+  const [workMode, setWorkMode] = useState<WorkModeFilter>("all");
   const [loading, setLoading] = useState(true);
   const [collecting, setCollecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +61,7 @@ export default function App() {
   useEffect(() => {
     let active = true;
 
-    Promise.all([getListings("", "recent", "active"), getLatestRun()])
+    Promise.all([getListings({ status: "active" }), getLatestRun()])
       .then(([nextListings, latestRun]) => {
         if (!active) return;
         setListings(nextListings);
@@ -89,11 +94,14 @@ export default function App() {
           setRun(latestRun);
           if (latestRun?.status !== "running") {
             setCollecting(false);
-            void getListings(
-              search.trim(),
+            void getListings({
+              search: search.trim(),
               sort,
-              statusFilter === "all" ? undefined : statusFilter,
-            ).then((nextListings) => {
+              status: statusFilter === "all" ? undefined : statusFilter,
+              company: company.trim(),
+              location: location.trim(),
+              workMode: workMode === "all" ? undefined : workMode,
+            }).then((nextListings) => {
               setListings(nextListings);
               setSelectedListing(null);
             });
@@ -110,7 +118,7 @@ export default function App() {
     }, 750);
 
     return () => window.clearInterval(timer);
-  }, [run?.status, search, sort, statusFilter]);
+  }, [run?.status, search, sort, statusFilter, company, location, workMode]);
 
   async function handleCollection(): Promise<void> {
     setError(null);
@@ -132,11 +140,14 @@ export default function App() {
     setError(null);
     try {
       setListings(
-        await getListings(
-          search.trim(),
+        await getListings({
+          search: search.trim(),
           sort,
-          statusFilter === "all" ? undefined : statusFilter,
-        ),
+          status: statusFilter === "all" ? undefined : statusFilter,
+          company: company.trim(),
+          location: location.trim(),
+          workMode: workMode === "all" ? undefined : workMode,
+        }),
       );
       setSelectedListing(null);
     } catch (searchError) {
@@ -151,11 +162,14 @@ export default function App() {
     setError(null);
     try {
       setListings(
-        await getListings(
-          search.trim(),
-          nextSort,
-          statusFilter === "all" ? undefined : statusFilter,
-        ),
+        await getListings({
+          search: search.trim(),
+          sort: nextSort,
+          status: statusFilter === "all" ? undefined : statusFilter,
+          company: company.trim(),
+          location: location.trim(),
+          workMode: workMode === "all" ? undefined : workMode,
+        }),
       );
       setSelectedListing(null);
     } catch (sortError) {
@@ -170,11 +184,14 @@ export default function App() {
     setError(null);
     try {
       setListings(
-        await getListings(
-          search.trim(),
+        await getListings({
+          search: search.trim(),
           sort,
-          nextStatus === "all" ? undefined : nextStatus,
-        ),
+          status: nextStatus === "all" ? undefined : nextStatus,
+          company: company.trim(),
+          location: location.trim(),
+          workMode: workMode === "all" ? undefined : workMode,
+        }),
       );
       setSelectedListing(null);
     } catch (statusError) {
@@ -184,6 +201,44 @@ export default function App() {
           : "Unable to filter roles.",
       );
     }
+  }
+
+  async function applyFilters(): Promise<void> {
+    setError(null);
+    try {
+      setListings(
+        await getListings({
+          search: search.trim(),
+          sort,
+          status: statusFilter === "all" ? undefined : statusFilter,
+          company: company.trim(),
+          location: location.trim(),
+          workMode: workMode === "all" ? undefined : workMode,
+        }),
+      );
+      setSelectedListing(null);
+    } catch (filterError) {
+      setError(
+        filterError instanceof Error
+          ? filterError.message
+          : "Unable to filter roles.",
+      );
+    }
+  }
+
+  async function clearFilters(): Promise<void> {
+    setCompany("");
+    setLocation("");
+    setWorkMode("all");
+    setError(null);
+    setListings(
+      await getListings({
+        search: search.trim(),
+        sort,
+        status: statusFilter === "all" ? undefined : statusFilter,
+      }),
+    );
+    setSelectedListing(null);
   }
 
   const activeListing = selectedListing ?? listings[0] ?? null;
@@ -268,6 +323,45 @@ export default function App() {
             <option value="location">Location A-Z</option>
           </select>
         </div>
+
+        <section className="filter-bar" aria-label="Job filters">
+          <label>
+            <span>Company</span>
+            <input
+              onChange={(event) => setCompany(event.target.value)}
+              placeholder="Any company"
+              value={company}
+            />
+          </label>
+          <label>
+            <span>Location</span>
+            <input
+              onChange={(event) => setLocation(event.target.value)}
+              placeholder="Any location"
+              value={location}
+            />
+          </label>
+          <label>
+            <span>Work mode</span>
+            <select
+              onChange={(event) =>
+                setWorkMode(event.target.value as WorkModeFilter)
+              }
+              value={workMode}
+            >
+              <option value="all">Any mode</option>
+              <option value="remote">Remote</option>
+              <option value="hybrid">Hybrid</option>
+              <option value="onsite">On-site</option>
+            </select>
+          </label>
+          <Button appearance="primary" onClick={() => void applyFilters()}>
+            Apply filters
+          </Button>
+          <Button appearance="subtle" onClick={() => void clearFilters()}>
+            Clear
+          </Button>
+        </section>
 
         {loading ? (
           <div className="empty-state" aria-live="polite">
