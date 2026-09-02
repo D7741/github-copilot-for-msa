@@ -69,23 +69,6 @@ export const candidateSources: Source[] = [
     },
   },
   {
-    id: "canva",
-    name: "Canva",
-    careersUrl: "https://job-boards.greenhouse.io/canva",
-    endpointUrl: "https://boards-api.greenhouse.io/v1/boards/canva/jobs?content=true",
-    sourceType: "greenhouse",
-    enabled: true,
-    policyStatus: "approved",
-    policyReview: {
-      reviewer: "workshop-fast-track",
-      reviewedAt: new Date().toISOString(),
-      termsUrl: null,
-      robotsUrl: "https://www.canva.com/robots.txt",
-      evidenceUrl: "https://job-boards.greenhouse.io/canva",
-      notes: "Public unauthenticated Greenhouse JSON endpoint. Fast-tracked for workshop learning purposes; formal Terms review still outstanding.",
-    },
-  },
-  {
     id: "trade-me-jobs",
     name: "Trade Me Jobs",
     careersUrl: "https://www.trademe.co.nz/a/jobs/it/programming-development",

@@ -21,7 +21,7 @@ describe("job finder API", () => {
     await request(app).get("/api/health").expect(200, { status: "ok" });
     const response = await request(app).get("/api/sources").expect(200);
 
-    expect(response.body.sources).toHaveLength(7);
+    expect(response.body.sources).toHaveLength(6);
     expect(response.body.sources).toEqual(expect.arrayContaining([
       expect.objectContaining({
         id: "pushpay",
