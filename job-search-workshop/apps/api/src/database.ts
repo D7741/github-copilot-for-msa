@@ -364,6 +364,8 @@ export class JobFinderRepository {
 
     seed(candidateSources);
 
+    this.database.prepare("UPDATE sources SET enabled = 0").run();
+
     const update = this.database.prepare(
       `UPDATE sources SET name = @name, careers_url = @careersUrl, endpoint_url = @endpointUrl,
        source_type = @sourceType, enabled = @enabled, policy_status = @policyStatus,

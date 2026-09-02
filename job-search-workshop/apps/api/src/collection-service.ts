@@ -16,7 +16,14 @@ export class CollectionService {
       );
     }
 
-    const sources = this.repository.listSources().filter((source) => source.enabled);
+    const sources = this.repository
+      .listSources()
+      .filter(
+        (source) =>
+          source.enabled &&
+          source.policyStatus === "approved" &&
+          source.endpointUrl !== null,
+      );
     const run = this.repository.createCollectionRun(sources.length);
     this.activeRunId = run.id;
 
