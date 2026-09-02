@@ -13,6 +13,7 @@ import {
 import { Button, Spinner, Tab, TabList } from "@fluentui/react-components";
 
 import { getLatestRun, getListings, startCollection } from "./api";
+import { JobAssistant } from "./JobAssistant";
 import type {
   CollectionRun,
   Listing,
@@ -448,6 +449,8 @@ export default function App() {
           </div>
         )}
       </main>
+
+      <JobAssistant knownListings={listings} />
 
       <footer>
         <span>Job Finder</span>
