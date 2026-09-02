@@ -5,7 +5,7 @@ import {
   CollectionService,
 } from "./collection-service.js";
 import { JobFinderRepository } from "./database.js";
-import type { ListingSort } from "./models.js";
+import type { Listing, ListingSort } from "./models.js";
 
 function optionalQuery(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
@@ -16,6 +16,18 @@ const LISTING_SORT_VALUES: ListingSort[] = ["recent", "title", "company", "locat
 function optionalSort(value: unknown): ListingSort | undefined {
   return LISTING_SORT_VALUES.includes(value as ListingSort)
     ? (value as ListingSort)
+    : undefined;
+}
+
+const LISTING_STATUS_VALUES: Listing["status"][] = [
+  "active",
+  "stale",
+  "unavailable",
+];
+
+function optionalStatus(value: unknown): Listing["status"] | undefined {
+  return LISTING_STATUS_VALUES.includes(value as Listing["status"])
+    ? (value as Listing["status"])
     : undefined;
 }
 
@@ -41,6 +53,7 @@ export function createApp(repository: JobFinderRepository) {
       location: optionalQuery(request.query.location),
       sourceId: optionalQuery(request.query.source),
       sort: optionalSort(request.query.sort),
+      status: optionalStatus(request.query.status),
     });
     response.json({ listings });
   });
