@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
 import {
-  CircleAlert,
-  ExternalLink,
-  MapPin,
-  RefreshCw,
-  Search,
-} from "lucide-react";
+  ArrowClockwise20Regular,
+  ArrowUpRight20Regular,
+  Briefcase20Filled,
+  Building20Regular,
+  CalendarLtr20Regular,
+  ChevronRight20Regular,
+  ErrorCircle20Regular,
+  Location20Regular,
+  Search20Regular,
+} from "@fluentui/react-icons";
+import { Button, Spinner } from "@fluentui/react-components";
 
 import { getLatestRun, getListings, startCollection } from "./api";
 import type { CollectionRun, Listing, ListingSort } from "./types";
@@ -18,6 +23,16 @@ function formatTimestamp(value: string | null): string {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function formatRelativeDate(value: string): string {
+  const days = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000),
+  );
+  if (days === 0) return "Added today";
+  if (days === 1) return "Added yesterday";
+  return `Added ${days} days ago`;
 }
 
 export default function App() {
@@ -126,157 +141,157 @@ export default function App() {
     }
   }
 
+  const activeListing = selectedListing ?? listings[0] ?? null;
+
   return (
     <div className="app-shell">
+      <header className="topbar">
+        <a className="brand" href="/" aria-label="Job Finder home">
+          <span className="brand-mark"><Briefcase20Filled /></span>
+          Job<span>Finder</span>
+        </a>
+        <div className="refresh-control">
+          <span className="refresh-timestamp">
+            Updated {formatTimestamp(run?.completedAt ?? null)}
+          </span>
+          <Button
+            appearance="subtle"
+            disabled={collecting || run?.status === "running"}
+            icon={<ArrowClockwise20Regular />}
+            onClick={() => void handleCollection()}
+          >
+            {collecting || run?.status === "running" ? "Refreshing" : "Refresh jobs"}
+          </Button>
+        </div>
+      </header>
+
       <main>
-        <header className="page-header">
+        <section className="search-hero" aria-labelledby="page-title">
           <div>
-            <p className="eyebrow">New Zealand software roles</p>
-            <h1>Job Finder</h1>
+            <p className="eyebrow">New Zealand tech</p>
+            <h1 id="page-title">Find work that fits.</h1>
           </div>
-          <div className="refresh-control">
-            <span className="refresh-timestamp">
-              Last refreshed {formatTimestamp(run?.completedAt ?? null)}
-            </span>
-            <button
-              className="primary-action"
-              disabled={collecting || run?.status === "running"}
-              onClick={() => void handleCollection()}
-              type="button"
-            >
-              <RefreshCw
-                className={collecting || run?.status === "running" ? "spin" : ""}
-                size={18}
-                aria-hidden="true"
-              />
-              {collecting || run?.status === "running"
-                ? "Refreshing"
-                : "Refresh"}
-            </button>
-          </div>
-        </header>
+          <form className="search-form" onSubmit={(event) => void handleSearch(event)}>
+            <Search20Regular aria-hidden="true" />
+            <label className="sr-only" htmlFor="job-search">Search roles</label>
+            <input
+              id="job-search"
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Job title, skill or company"
+              type="search"
+              value={search}
+            />
+            <Button appearance="primary" type="submit">Find jobs</Button>
+          </form>
+        </section>
 
         {error && (
           <div className="error-banner" role="alert">
-            <CircleAlert size={18} aria-hidden="true" />
+            <ErrorCircle20Regular aria-hidden="true" />
             {error}
           </div>
         )}
 
-        <section className="listings-section">
-          <div className="section-toolbar">
-            <div>
-              <p className="eyebrow">Current results</p>
-              <h2>Software roles ({listings.length})</h2>
-            </div>
-            <form
-              className="search-form"
-              onSubmit={(event) => void handleSearch(event)}
-            >
-              <Search size={18} aria-hidden="true" />
-              <label className="sr-only" htmlFor="job-search">
-                Search roles
-              </label>
-              <input
-                id="job-search"
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Title, company, or location"
-                type="search"
-                value={search}
-              />
-              <button type="submit">Search</button>
-            </form>
-            <label className="sr-only" htmlFor="job-sort">
-              Sort roles
-            </label>
-            <select
-              id="job-sort"
-              onChange={(event) => void handleSortChange(event.target.value as ListingSort)}
-              value={sort}
-            >
-              <option value="recent">Most recent</option>
-              <option value="title">Title (A-Z)</option>
-              <option value="company">Company (A-Z)</option>
-              <option value="location">Location (A-Z)</option>
-            </select>
+        <div className="results-bar">
+          <div>
+            <strong>{listings.length} software roles</strong>
+            <span> across New Zealand</span>
           </div>
+          <label htmlFor="job-sort">Sort by</label>
+          <select
+            id="job-sort"
+            onChange={(event) => void handleSortChange(event.target.value as ListingSort)}
+            value={sort}
+          >
+            <option value="recent">Most recent</option>
+            <option value="title">Title A-Z</option>
+            <option value="company">Company A-Z</option>
+            <option value="location">Location A-Z</option>
+          </select>
+        </div>
 
-          {loading ? (
-            <div className="empty-state" aria-live="polite">
-              <RefreshCw className="spin" size={24} aria-hidden="true" />
-              <strong>Loading roles</strong>
-            </div>
-          ) : listings.length === 0 ? (
-            <div className="empty-state">
-              <strong>No roles found yet</strong>
-              <p>
-                Select Refresh to check for current vacancies.
-              </p>
-            </div>
-          ) : (
-            <div className="listing-table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Role</th>
-                    <th>Company</th>
-                    <th>Location</th>
-                    <th aria-label="Open source" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {listings.map((listing) => (
-                    <tr
-                      className={selectedListing?.id === listing.id ? "selected" : ""}
-                      key={listing.id}
-                      onClick={() => setSelectedListing(listing)}
-                    >
-                      <td>
-                        <strong>{listing.title}</strong>
-                      </td>
-                      <td>{listing.companyName}</td>
-                      <td>
-                        <span className="location">
-                          <MapPin size={14} aria-hidden="true" />
-                          {listing.location ?? "Not provided"}
-                        </span>
-                      </td>
-                      <td>
-                        <a
-                          className="icon-link"
-                          href={listing.sourceUrl}
-                          rel="noreferrer"
-                          target="_blank"
-                          title="Open original listing"
-                        >
-                          <ExternalLink size={17} aria-hidden="true" />
-                          <span className="sr-only">Open {listing.title}</span>
-                        </a>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+        {loading ? (
+          <div className="empty-state" aria-live="polite">
+            <Spinner label="Loading current roles" />
+          </div>
+        ) : listings.length === 0 ? (
+          <div className="empty-state">
+            <span className="empty-icon"><Search20Regular /></span>
+            <h2>No matching jobs yet</h2>
+            <p>Try another search or refresh to check the latest vacancies.</p>
+            <Button appearance="primary" onClick={() => void handleCollection()}>
+              Refresh jobs
+            </Button>
+          </div>
+        ) : (
+          <div className="job-workspace">
+            <section className="job-list" aria-label="Job results">
+              {listings.map((listing) => (
+                <button
+                  aria-pressed={activeListing?.id === listing.id}
+                  className={`job-card${activeListing?.id === listing.id ? " selected" : ""}`}
+                  key={listing.id}
+                  onClick={() => setSelectedListing(listing)}
+                  type="button"
+                >
+                  <span className="company-avatar" aria-hidden="true">
+                    {listing.companyName.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="job-card-copy">
+                    <strong>{listing.title}</strong>
+                    <span className="company-name">{listing.companyName}</span>
+                    <span className="job-meta">
+                      <span><Location20Regular />{listing.location ?? "Location flexible"}</span>
+                      <span>{formatRelativeDate(listing.firstSeenAt)}</span>
+                    </span>
+                  </span>
+                  <ChevronRight20Regular className="card-arrow" aria-hidden="true" />
+                </button>
+              ))}
+            </section>
 
-        {selectedListing && (
-          <section className="listing-detail" aria-labelledby="listing-detail-title">
-            <p className="eyebrow">Role details</p>
-            <h2 id="listing-detail-title">{selectedListing.title}</h2>
-            <dl>
-              <div><dt>Company</dt><dd>{selectedListing.companyName}</dd></div>
-              <div><dt>Location</dt><dd>{selectedListing.location ?? "Not provided"}</dd></div>
-              <div><dt>Collected</dt><dd>{formatTimestamp(selectedListing.lastSeenAt)}</dd></div>
-            </dl>
-            <p>{selectedListing.summary ?? "Open the original listing for the full job description."}</p>
-            <a className="primary-action" href={selectedListing.sourceUrl} rel="noreferrer" target="_blank">
-              View original listing <ExternalLink size={18} aria-hidden="true" />
-            </a>
-          </section>
+            {activeListing && (
+              <aside className="job-detail" aria-labelledby="listing-detail-title">
+                <div className="detail-accent" />
+                <div className="detail-heading">
+                  <span className="company-avatar large" aria-hidden="true">
+                    {activeListing.companyName.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className={`status-pill ${activeListing.status}`}>
+                    {activeListing.status}
+                  </span>
+                </div>
+                <h2 id="listing-detail-title">{activeListing.title}</h2>
+                <p className="detail-company">{activeListing.companyName}</p>
+                <div className="detail-facts">
+                  <span><Location20Regular />{activeListing.location ?? "Location flexible"}</span>
+                  <span><CalendarLtr20Regular />Collected {formatTimestamp(activeListing.lastSeenAt)}</span>
+                  <span><Building20Regular />Source: {activeListing.companyName}</span>
+                </div>
+                <Button
+                  appearance="primary"
+                  as="a"
+                  href={activeListing.sourceUrl}
+                  icon={<ArrowUpRight20Regular />}
+                  iconPosition="after"
+                  target="_blank"
+                >
+                  View original job
+                </Button>
+                <div className="detail-body">
+                  <h3>About this role</h3>
+                  <p>{activeListing.summary ?? "The source has not provided a summary. Open the original listing to review the complete role, requirements and application details."}</p>
+                </div>
+              </aside>
+            )}
+          </div>
         )}
       </main>
+
+      <footer>
+        <span>Job Finder</span>
+        <span>Local-first job discovery for New Zealand</span>
+      </footer>
     </div>
   );
 }
