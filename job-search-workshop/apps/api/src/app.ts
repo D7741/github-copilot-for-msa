@@ -5,9 +5,18 @@ import {
   CollectionService,
 } from "./collection-service.js";
 import { JobFinderRepository } from "./database.js";
+import type { ListingSort } from "./models.js";
 
 function optionalQuery(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+const LISTING_SORT_VALUES: ListingSort[] = ["recent", "title", "company", "location"];
+
+function optionalSort(value: unknown): ListingSort | undefined {
+  return LISTING_SORT_VALUES.includes(value as ListingSort)
+    ? (value as ListingSort)
+    : undefined;
 }
 
 export function createApp(repository: JobFinderRepository) {
@@ -31,6 +40,7 @@ export function createApp(repository: JobFinderRepository) {
       company: optionalQuery(request.query.company),
       location: optionalQuery(request.query.location),
       sourceId: optionalQuery(request.query.source),
+      sort: optionalSort(request.query.sort),
     });
     response.json({ listings });
   });

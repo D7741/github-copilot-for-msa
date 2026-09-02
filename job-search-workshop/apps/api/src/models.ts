@@ -34,11 +34,14 @@ export interface Listing {
   status: "active" | "stale" | "unavailable";
 }
 
+export type ListingSort = "recent" | "title" | "company" | "location";
+
 export interface ListingFilters {
   search?: string;
   company?: string;
   location?: string;
   sourceId?: string;
+  sort?: ListingSort;
 }
 
 export interface CollectionRun {

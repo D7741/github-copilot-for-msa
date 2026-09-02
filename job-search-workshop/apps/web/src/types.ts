@@ -8,6 +8,8 @@ export interface Source {
   policyStatus: "approved" | "pending" | "rejected";
 }
 
+export type ListingSort = "recent" | "title" | "company" | "location";
+
 export interface Listing {
   id: string;
   sourceId: string;

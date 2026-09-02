@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 
 import { getLatestRun, getListings, startCollection } from "./api";
-import type { CollectionRun, Listing } from "./types";
+import type { CollectionRun, Listing, ListingSort } from "./types";
 
 function formatTimestamp(value: string | null): string {
   if (!value) {
@@ -25,6 +25,7 @@ export default function App() {
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [run, setRun] = useState<CollectionRun | null>(null);
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<ListingSort>("recent");
   const [loading, setLoading] = useState(true);
   const [collecting, setCollecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -103,11 +104,24 @@ export default function App() {
     event.preventDefault();
     setError(null);
     try {
-      setListings(await getListings(search.trim()));
+      setListings(await getListings(search.trim(), sort));
       setSelectedListing(null);
     } catch (searchError) {
       setError(
         searchError instanceof Error ? searchError.message : "Search failed.",
+      );
+    }
+  }
+
+  async function handleSortChange(nextSort: ListingSort): Promise<void> {
+    setSort(nextSort);
+    setError(null);
+    try {
+      setListings(await getListings(search.trim(), nextSort));
+      setSelectedListing(null);
+    } catch (sortError) {
+      setError(
+        sortError instanceof Error ? sortError.message : "Unable to sort roles.",
       );
     }
   }
@@ -172,6 +186,19 @@ export default function App() {
               />
               <button type="submit">Search</button>
             </form>
+            <label className="sr-only" htmlFor="job-sort">
+              Sort roles
+            </label>
+            <select
+              id="job-sort"
+              onChange={(event) => void handleSortChange(event.target.value as ListingSort)}
+              value={sort}
+            >
+              <option value="recent">Most recent</option>
+              <option value="title">Title (A-Z)</option>
+              <option value="company">Company (A-Z)</option>
+              <option value="location">Location (A-Z)</option>
+            </select>
           </div>
 
           {loading ? (
