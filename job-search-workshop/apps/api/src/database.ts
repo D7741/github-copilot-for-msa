@@ -8,11 +8,20 @@ import type {
   CollectionRun,
   Listing,
   ListingFilters,
+  ListingSort,
   Source,
 } from "./models.js";
 import { candidateSources } from "./sources.js";
 
 type SqlValue = string | number | null;
+
+// whitelisted to prevent building ORDER BY from unvalidated input
+const LISTING_SORT_COLUMNS: Record<ListingSort, string> = {
+  recent: "last_seen_at DESC, title",
+  title: "title, company_name",
+  company: "company_name, title",
+  location: "location IS NULL, location, title",
+};
 
 export class JobFinderRepository {
   private readonly database: Database.Database;
@@ -85,13 +94,14 @@ export class JobFinderRepository {
     }
 
     const where = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "";
+    const orderBy = LISTING_SORT_COLUMNS[filters.sort ?? "recent"];
     const rows = this.database
       .prepare(
         `SELECT id, source_id, company_name, title, location, summary, posted_at,
                 source_url, first_seen_at, last_seen_at, status
          FROM listings
          ${where}
-         ORDER BY last_seen_at DESC, title`,
+         ORDER BY ${orderBy}`,
       )
       .all(parameters) as Array<Record<string, SqlValue>>;
 
