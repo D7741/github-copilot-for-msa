@@ -1,4 +1,10 @@
-import type { CollectionRun, Listing, ListingSort, Source } from "./types";
+import type {
+  CollectionRun,
+  Listing,
+  ListingSort,
+  ListingStatus,
+  Source,
+} from "./types";
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
@@ -18,10 +24,15 @@ export async function getSources(): Promise<Source[]> {
   return result.sources;
 }
 
-export async function getListings(search = "", sort: ListingSort = "recent"): Promise<Listing[]> {
+export async function getListings(
+  search = "",
+  sort: ListingSort = "recent",
+  status?: ListingStatus,
+): Promise<Listing[]> {
   const params = new URLSearchParams();
   if (search) params.set("search", search);
   if (sort !== "recent") params.set("sort", sort);
+  if (status) params.set("status", status);
   const query = params.toString() ? `?${params.toString()}` : "";
   const result = await requestJson<{ listings: Listing[] }>(
     `/api/listings${query}`,

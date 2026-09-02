@@ -9,6 +9,7 @@ export interface Source {
 }
 
 export type ListingSort = "recent" | "title" | "company" | "location";
+export type ListingStatus = "active" | "stale" | "unavailable";
 
 export interface Listing {
   id: string;
@@ -21,7 +22,7 @@ export interface Listing {
   sourceUrl: string;
   firstSeenAt: string;
   lastSeenAt: string;
-  status: "active" | "stale" | "unavailable";
+  status: ListingStatus;
 }
 
 export interface CollectionRun {

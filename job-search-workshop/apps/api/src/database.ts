@@ -71,6 +71,15 @@ export class JobFinderRepository {
   }
 
   public listListings(filters: ListingFilters = {}): Listing[] {
+    this.database
+      .prepare(
+        `UPDATE listings
+         SET status = 'stale'
+         WHERE status = 'active'
+           AND last_seen_at < datetime('now', '-14 days')`,
+      )
+      .run();
+
     const clauses: string[] = [];
     const parameters: Record<string, string> = {};
 
@@ -91,6 +100,10 @@ export class JobFinderRepository {
     if (filters.sourceId) {
       clauses.push("source_id = @sourceId");
       parameters.sourceId = filters.sourceId;
+    }
+    if (filters.status) {
+      clauses.push("status = @status");
+      parameters.status = filters.status;
     }
 
     const where = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "";
@@ -134,6 +147,16 @@ export class JobFinderRepository {
          last_seen_at = excluded.last_seen_at, status = 'active'`,
     );
     const transaction = this.database.transaction(() => {
+      if (listings.length > 0) {
+        this.database
+          .prepare(
+            `UPDATE listings
+             SET status = 'unavailable'
+             WHERE source_id = @sourceId`,
+          )
+          .run({ sourceId: source.id });
+      }
+
       for (const listing of listings) {
         save.run({
           id: createHash("sha256").update(`${source.id}:${listing.sourceUrl}`).digest("hex"),

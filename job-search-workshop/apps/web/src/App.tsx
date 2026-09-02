@@ -10,10 +10,17 @@ import {
   Location20Regular,
   Search20Regular,
 } from "@fluentui/react-icons";
-import { Button, Spinner } from "@fluentui/react-components";
+import { Button, Spinner, Tab, TabList } from "@fluentui/react-components";
 
 import { getLatestRun, getListings, startCollection } from "./api";
-import type { CollectionRun, Listing, ListingSort } from "./types";
+import type {
+  CollectionRun,
+  Listing,
+  ListingSort,
+  ListingStatus,
+} from "./types";
+
+type StatusFilter = ListingStatus | "all";
 
 function formatTimestamp(value: string | null): string {
   if (!value) {
@@ -25,14 +32,14 @@ function formatTimestamp(value: string | null): string {
   }).format(new Date(value));
 }
 
-function formatRelativeDate(value: string): string {
+function formatRelativeDate(value: string, label = "Added"): string {
   const days = Math.max(
     0,
     Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000),
   );
-  if (days === 0) return "Added today";
-  if (days === 1) return "Added yesterday";
-  return `Added ${days} days ago`;
+  if (days === 0) return `${label} today`;
+  if (days === 1) return `${label} yesterday`;
+  return `${label} ${days} days ago`;
 }
 
 export default function App() {
@@ -41,6 +48,7 @@ export default function App() {
   const [run, setRun] = useState<CollectionRun | null>(null);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<ListingSort>("recent");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
   const [loading, setLoading] = useState(true);
   const [collecting, setCollecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +56,7 @@ export default function App() {
   useEffect(() => {
     let active = true;
 
-    Promise.all([getListings(), getLatestRun()])
+    Promise.all([getListings("", "recent", "active"), getLatestRun()])
       .then(([nextListings, latestRun]) => {
         if (!active) return;
         setListings(nextListings);
@@ -81,7 +89,11 @@ export default function App() {
           setRun(latestRun);
           if (latestRun?.status !== "running") {
             setCollecting(false);
-            void getListings().then((nextListings) => {
+            void getListings(
+              search.trim(),
+              sort,
+              statusFilter === "all" ? undefined : statusFilter,
+            ).then((nextListings) => {
               setListings(nextListings);
               setSelectedListing(null);
             });
@@ -98,7 +110,7 @@ export default function App() {
     }, 750);
 
     return () => window.clearInterval(timer);
-  }, [run?.status]);
+  }, [run?.status, search, sort, statusFilter]);
 
   async function handleCollection(): Promise<void> {
     setError(null);
@@ -119,7 +131,13 @@ export default function App() {
     event.preventDefault();
     setError(null);
     try {
-      setListings(await getListings(search.trim(), sort));
+      setListings(
+        await getListings(
+          search.trim(),
+          sort,
+          statusFilter === "all" ? undefined : statusFilter,
+        ),
+      );
       setSelectedListing(null);
     } catch (searchError) {
       setError(
@@ -132,11 +150,38 @@ export default function App() {
     setSort(nextSort);
     setError(null);
     try {
-      setListings(await getListings(search.trim(), nextSort));
+      setListings(
+        await getListings(
+          search.trim(),
+          nextSort,
+          statusFilter === "all" ? undefined : statusFilter,
+        ),
+      );
       setSelectedListing(null);
     } catch (sortError) {
       setError(
         sortError instanceof Error ? sortError.message : "Unable to sort roles.",
+      );
+    }
+  }
+
+  async function handleStatusChange(nextStatus: StatusFilter): Promise<void> {
+    setStatusFilter(nextStatus);
+    setError(null);
+    try {
+      setListings(
+        await getListings(
+          search.trim(),
+          sort,
+          nextStatus === "all" ? undefined : nextStatus,
+        ),
+      );
+      setSelectedListing(null);
+    } catch (statusError) {
+      setError(
+        statusError instanceof Error
+          ? statusError.message
+          : "Unable to filter roles.",
       );
     }
   }
@@ -197,6 +242,20 @@ export default function App() {
             <strong>{listings.length} software roles</strong>
             <span> across New Zealand</span>
           </div>
+          <TabList
+            aria-label="Filter jobs by availability"
+            className="status-tabs"
+            onTabSelect={(_event, data) =>
+              void handleStatusChange(data.value as StatusFilter)
+            }
+            selectedValue={statusFilter}
+            size="small"
+          >
+            <Tab value="active">Current</Tab>
+            <Tab value="stale">Stale</Tab>
+            <Tab value="unavailable">Unavailable</Tab>
+            <Tab value="all">All</Tab>
+          </TabList>
           <label htmlFor="job-sort">Sort by</label>
           <select
             id="job-sort"
@@ -242,7 +301,12 @@ export default function App() {
                     <span className="company-name">{listing.companyName}</span>
                     <span className="job-meta">
                       <span><Location20Regular />{listing.location ?? "Location flexible"}</span>
-                      <span>{formatRelativeDate(listing.firstSeenAt)}</span>
+                      <span>
+                        {formatRelativeDate(
+                          listing.postedAt ?? listing.firstSeenAt,
+                          listing.postedAt ? "Posted" : "Added",
+                        )}
+                      </span>
                     </span>
                   </span>
                   <ChevronRight20Regular className="card-arrow" aria-hidden="true" />
@@ -265,7 +329,10 @@ export default function App() {
                 <p className="detail-company">{activeListing.companyName}</p>
                 <div className="detail-facts">
                   <span><Location20Regular />{activeListing.location ?? "Location flexible"}</span>
-                  <span><CalendarLtr20Regular />Collected {formatTimestamp(activeListing.lastSeenAt)}</span>
+                  {activeListing.postedAt && (
+                    <span><CalendarLtr20Regular />Posted {formatTimestamp(activeListing.postedAt)}</span>
+                  )}
+                  <span><CalendarLtr20Regular />Last verified {formatTimestamp(activeListing.lastSeenAt)}</span>
                   <span><Building20Regular />Source: {activeListing.companyName}</span>
                 </div>
                 <Button

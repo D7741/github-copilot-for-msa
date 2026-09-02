@@ -42,6 +42,7 @@ export interface ListingFilters {
   location?: string;
   sourceId?: string;
   sort?: ListingSort;
+  status?: Listing["status"];
 }
 
 export interface CollectionRun {
